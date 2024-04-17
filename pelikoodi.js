@@ -123,6 +123,12 @@ var render = function () {
   ctx.textBaseline = "top";
   ctx.fillText("Kolikoita kerätty: " + enemiesCaught, 20, 20);
   ctx.fillText("Aikaa jäljellä: " + count, 20, 50);
+  // Get the highscore from localStorage
+  var highscore = localStorage.getItem('highscore') || 0;
+
+  // Display the highscore
+  ctx.fillText("Ennätys: " + highscore, 20, 80);
+
   // Display game over message when timer finished
   if(finished==true){
     ctx.fillStyle = "rgb(250, 250, 250)";
@@ -131,7 +137,14 @@ var render = function () {
     ctx.fillText("Loppu!", canvas.width / 2, canvas.height / 2);
   }
 
-  
+  // After the game is finished
+  if(finished==true){
+    // If there is no highscore or the current score is higher than the highscore
+    if(enemiesCaught > highscore){
+      // Update the highscore
+      localStorage.setItem('highscore', enemiesCaught);
+    }
+}
 };
 
 var count = 30; // how many seconds the game lasts for - default 30
