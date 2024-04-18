@@ -37,12 +37,11 @@ function startGame() {
 
   // Create the game objects
   var player = {
-    speed: 256 // movement speed of player in pixels per second
+    speed: 200 // movement speed of player in pixels per second
   };
   var enemy = {};
   var enemiesCaught = 0;
 
-  // Continue with the rest of your game logic...
   // Handle keyboard controls
 var keysDown = {};
 
@@ -64,21 +63,35 @@ var reset = function () {
   // Place the enemy somewhere on the canvas randomly
   enemy.x = enemyImage.width + (Math.random() * (canvas.width - (enemyImage.width*2)));
   enemy.y = enemyImage.height + (Math.random() * (canvas.height - (enemyImage.height*2)));
+
+  // Load the player image
+  playerImage.onload = function () {
+    playerReady = true;
+  };
+  playerImage.src = "ukko.png";
+
+  // Load the enemy image
+  enemyImage.onload = function () {
+    enemyReady = true;
+  };
+  enemyImage.src = "kolikko.png";
 };
 
 // Update game objects - change player position based on key pressed
 var update = function (modifier) {
-  if ("ArrowUp" in keysDown || "w" in keysDown) { // Player is holding up key
-    player.y -= player.speed * modifier;
-  }
-  if ("ArrowDown" in keysDown || "s" in keysDown) { // Player is holding down key
-    player.y += player.speed * modifier;
-  }
-  if ("ArrowLeft" in keysDown || "a" in keysDown) { // Player is holding left key
-    player.x -= player.speed * modifier;
-  }
-  if ("ArrowRight" in keysDown || "d" in keysDown) { // Player is holding right key
-    player.x += player.speed * modifier;
+  if (!finished) { // Only update if the game is not finished
+    if ("ArrowUp" in keysDown || "w" in keysDown) { // Player is holding up key
+      player.y -= player.speed * modifier;
+    }
+    if ("ArrowDown" in keysDown || "s" in keysDown) { // Player is holding down key
+      player.y += player.speed * modifier;
+    }
+    if ("ArrowLeft" in keysDown || "a" in keysDown) { // Player is holding left key
+      player.x -= player.speed * modifier;
+    }
+    if ("ArrowRight" in keysDown || "d" in keysDown) { // Player is holding right key
+      player.x += player.speed * modifier;
+    }
   }
 
   if (player.x < 0) { // left border
@@ -105,18 +118,49 @@ var update = function (modifier) {
   }
 };
 
+// Get the button element
+canvas.addEventListener('click', function(event) {
+  var rect = canvas.getBoundingClientRect();
+  var x = event.clientX - rect.left;
+  var y = event.clientY - rect.top;
+
+  // Check if the button was clicked
+  if (x >= restartButton.x && x <= restartButton.x + restartButton.width &&
+      y >= restartButton.y && y <= restartButton.y + restartButton.height) {
+    // Reset the game
+    reset();
+
+    // Reset the score
+    enemiesCaught = 0;
+
+    // Reset the timer
+    count = 1;
+
+    // Reset the game over flag
+    finished = false;
+  }
+});
+
+var restartButton = {
+  x: canvas.width / 2,
+  y: canvas.height / 2 + 30,
+  width: 100,
+  height: 20
+};
 // Draw everything on the canvas
 var render = function () {
   if (bgReady) {
     ctx.drawImage(bgImage, 0, 0);
   }
 
-  if (playerReady) {
-    ctx.drawImage(playerImage, player.x, player.y);
-  }
+  if (!finished) { // Only draw the player and enemies if the game is not finished
+    if (playerReady) {
+      ctx.drawImage(playerImage, player.x, player.y);
+    }
 
-  if (enemyReady) {
-    ctx.drawImage(enemyImage, enemy.x, enemy.y);
+    if (enemyReady) {
+      ctx.drawImage(enemyImage, enemy.x, enemy.y);
+    }
   }
 
   // Display score and time 
@@ -134,10 +178,15 @@ var render = function () {
 
   // Display game over message when timer finished
   if(finished==true){
-    ctx.fillStyle = "rgb(250, 250, 250)";
+    ctx.fillStyle = "rgb(255, 255, 255)";
     ctx.textAlign = "center"; // center alignment for x axis
     ctx.textBaseline = "middle"; // middle alignment for y axis
     ctx.fillText("Loppu!", canvas.width / 2, canvas.height / 2);
+    // Draw the restart button
+    ctx.fillText("Uudelleen", restartButton.x, restartButton.y);
+    // Draw a rectangle around the button
+    ctx.strokeStyle = "rgb(0, 0, 0)";
+    ctx.strokeRect(restartButton.x - 57, restartButton.y - 12, restartButton.width + 15, restartButton.height + 5);
   }
 
   // After the game is finished
@@ -150,7 +199,7 @@ var render = function () {
 }
 };
 
-var count = 30; // how many seconds the game lasts for - default 30
+var count = 1; // how many seconds the game lasts for - default 30
 var finished = false;
 var counter =function(){
   count=count-1; // countown by 1 every second
@@ -200,6 +249,6 @@ startButton.addEventListener('click', function() {
   // Hide the instruction page
   instructionPage.style.display = 'none';
 
-  // Start the game
+  // pelit soimaa
   startGame();
 });
