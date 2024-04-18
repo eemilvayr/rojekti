@@ -1,46 +1,49 @@
 // credits to https://www.codemahal.com/make-2d-game-javascript for the code
 // Create the canvas for the game to display in
-var canvas = document.createElement("canvas");
-var ctx = canvas.getContext("2d");
-canvas.width = 1024;
-canvas.height = 768;
-document.body.appendChild(canvas);
+// Get the instruction page and start button elements
+function startGame() {
+  var canvas = document.createElement("canvas");
+  var ctx = canvas.getContext("2d");
+  canvas.width = 1024;
+  canvas.height = 768;
+  document.body.appendChild(canvas);
 
-// Load the background image
-var bgReady = false;
-var bgImage = new Image();
-bgImage.onload = function () {
-  // show the background image
-  bgReady = true;
-};
-bgImage.src = "tausta.png";
+  // Load the background image
+  var bgReady = false;
+  var bgImage = new Image();
+  bgImage.onload = function () {
+    // show the background image
+    bgReady = true;
+  };
+  bgImage.src = "tausta.png";
 
-// Load the player image
-var playerReady = false;
-var playerImage = new Image();
-playerImage.onload = function () {
-  // show the player image
-  playerReady = true;
-};
-playerImage.src = "ukko.png";
+  // Load the player image
+  var playerReady = false;
+  var playerImage = new Image();
+  playerImage.onload = function () {
+    // show the player image
+    playerReady = true;
+  };
+  playerImage.src = "ukko.png";
 
-// Load the enemy image
-var enemyReady = false;
-var enemyImage = new Image();
-enemyImage.onload = function () {
-  // show the enemy image
-  enemyReady = true;
-};
-enemyImage.src = "kolikko.png";
+  // Load the enemy image
+  var enemyReady = false;
+  var enemyImage = new Image();
+  enemyImage.onload = function () {
+    // show the enemy image
+    enemyReady = true;
+  };
+  enemyImage.src = "kolikko.png";
 
-// Create the game objects
-var player = {
-  speed: 256 // movement speed of player in pixels per second
-};
-var enemy = {};
-var enemiesCaught = 0;
+  // Create the game objects
+  var player = {
+    speed: 256 // movement speed of player in pixels per second
+  };
+  var enemy = {};
+  var enemiesCaught = 0;
 
-// Handle keyboard controls
+  // Continue with the rest of your game logic...
+  // Handle keyboard controls
 var keysDown = {};
 
 // Check for keys pressed where key represents the key pressed
@@ -186,3 +189,17 @@ requestAnimationFrame = w.requestAnimationFrame || w.webkitRequestAnimationFrame
 // Let's play this game!
 reset();
 main();
+}
+
+// Get the instruction page and start button elements
+var instructionPage = document.getElementById('instruction-page');
+var startButton = document.getElementById('start-button');
+
+// Handle the click event of the start button
+startButton.addEventListener('click', function() {
+  // Hide the instruction page
+  instructionPage.style.display = 'none';
+
+  // Start the game
+  startGame();
+});
