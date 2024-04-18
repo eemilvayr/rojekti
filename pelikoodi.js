@@ -1,6 +1,4 @@
-// credits to https://www.codemahal.com/make-2d-game-javascript for the code
-// Create the canvas for the game to display in
-// Get the instruction page and start button elements
+// credits to https://www.codemahal.com/make-2d-game-javascript for the base code for this game
 function startGame() {
   var canvas = document.createElement("canvas");
   var ctx = canvas.getContext("2d");
@@ -26,6 +24,15 @@ function startGame() {
   };
   playerImage.src = "ukko.png";
 
+  // Load the coin image
+  var coinReady = false;
+  var coinImage = new Image();
+  coinImage.onload = function () {
+    // show the coin image
+    coinReady = true;
+  };
+  coinImage.src = "kolikko.png";
+
   // Load the enemy image
   var enemyReady = false;
   var enemyImage = new Image();
@@ -33,15 +40,21 @@ function startGame() {
     // show the enemy image
     enemyReady = true;
   };
-  enemyImage.src = "kolikko.png";
+  enemyImage.src = "vihu.png";
 
   // Create the game objects
   var player = {
-    speed: 200 // movement speed of player in pixels per second
+    speed: 200, // movement speed of player in pixels per second
+    health: 10 // health of player
   };
-  var enemy = {};
-  var enemiesCaught = 0;
+  var coin = {};
+  var coinsCollected = 0;
 
+  var enemy = {
+    speed: player.speed / 2, // enemy moves at half the player's speed
+    x: Math.random() * canvas.width,
+    y: Math.random() * canvas.height
+  };
   // Handle keyboard controls
 var keysDown = {};
 
@@ -54,15 +67,15 @@ addEventListener("keyup", function (event) {
   delete keysDown[event.key];
 }, false);
 
-// Reset the player and enemy positions when player catches an enemy
+// Reset the player and coin positions when player collects a coin
 var reset = function () {
   // Reset player's position to centre of canvas
   player.x = canvas.width / 2;
   player.y = canvas.height / 2;
 
-  // Place the enemy somewhere on the canvas randomly
-  enemy.x = enemyImage.width + (Math.random() * (canvas.width - (enemyImage.width*2)));
-  enemy.y = enemyImage.height + (Math.random() * (canvas.height - (enemyImage.height*2)));
+  // Place the coin somewhere on the canvas randomly
+  coin.x = coinImage.width + (Math.random() * (canvas.width - (coinImage.width*2)));
+  coin.y = coinImage.height + (Math.random() * (canvas.height - (coinImage.height*2)));
 
   // Load the player image
   playerImage.onload = function () {
@@ -70,11 +83,11 @@ var reset = function () {
   };
   playerImage.src = "ukko.png";
 
-  // Load the enemy image
-  enemyImage.onload = function () {
-    enemyReady = true;
+  // Load the coin image
+  coinImage.onload = function () {
+    coinReady = true;
   };
-  enemyImage.src = "kolikko.png";
+  coinImage.src = "kolikko.png";
 };
 
 // Update game objects - change player position based on key pressed
@@ -92,6 +105,38 @@ var update = function (modifier) {
     if ("ArrowRight" in keysDown || "d" in keysDown) { // Player is holding right key
       player.x += player.speed * modifier;
     }
+    // Move the enemy towards the player
+    var dx = player.x - enemy.x;
+    var dy = player.y - enemy.y;
+    var distance = Math.sqrt(dx * dx + dy * dy);
+    
+    if (distance > 0) {
+      enemy.x += (dx / distance) * enemy.speed * modifier;
+      enemy.y += (dy / distance) * enemy.speed * modifier;
+    }
+    
+    // Check if the player and enemy are touching
+    if (
+      player.x <= (enemy.x + 32)
+      && enemy.x <= (player.x + 32)
+      && player.y <= (enemy.y + 32)
+      && enemy.y <= (player.y + 32)
+    ) {
+      player.health -= 1;
+    }
+  
+    // Check if the player's health is 0 or less
+    if (player.health <= 0) {
+      // End the game
+      finished = true;
+    
+      // Hide the player and coin
+      playerReady = false;
+      coinReady = false;
+      count = 0;
+      kuoli = true;
+
+    }
   }
 
   if (player.x < 0) { // left border
@@ -106,14 +151,14 @@ var update = function (modifier) {
   if (player.y > canvas.height - playerImage.height) { // bottom border
     player.y = canvas.height - playerImage.height;
   }
-  // Check if player and enemy collide
+  // Check if player and coin collide
   if (
-    player.x <= (enemy.x + enemyImage.width)
-    && enemy.x <= (player.x + playerImage.width)
-    && player.y <= (enemy.y + enemyImage.height)
-    && enemy.y <= (player.y + playerImage.height)
+    player.x <= (coin.x + coinImage.width)
+    && coin.x <= (player.x + playerImage.width)
+    && player.y <= (coin.y + coinImage.height)
+    && coin.y <= (player.y + playerImage.height)
   ) {
-    ++enemiesCaught;
+    ++coinsCollected;
     reset();
   }
 };
@@ -131,10 +176,10 @@ canvas.addEventListener('click', function(event) {
     reset();
 
     // Reset the score
-    enemiesCaught = 0;
+    coinsCollected = 0;
 
     // Reset the timer
-    count = 1;
+    count = 30;
 
     // Reset the game over flag
     finished = false;
@@ -153,9 +198,13 @@ var render = function () {
     ctx.drawImage(bgImage, 0, 0);
   }
 
-  if (!finished) { // Only draw the player and enemies if the game is not finished
+  if (!finished) { // Only draw the player and coins if the game is not finished
     if (playerReady) {
       ctx.drawImage(playerImage, player.x, player.y);
+    }
+
+    if (coinReady) {
+      ctx.drawImage(coinImage, coin.x, coin.y);
     }
 
     if (enemyReady) {
@@ -168,7 +217,7 @@ var render = function () {
   ctx.font = "24px Helvetica";
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
-  ctx.fillText("Kolikoita kerätty: " + enemiesCaught, 20, 20);
+  ctx.fillText("Kolikoita kerätty: " + coinsCollected, 20, 20);
   ctx.fillText("Aikaa jäljellä: " + count, 20, 50);
   // Get the highscore from localStorage
   var highscore = localStorage.getItem('highscore') || 0;
@@ -176,12 +225,18 @@ var render = function () {
   // Display the highscore
   ctx.fillText("Ennätys: " + highscore, 20, 80);
 
+  // Display the player's health
+  ctx.fillText("Elämät: " + player.health, 20, 110);
+  
   // Display game over message when timer finished
   if(finished==true){
     ctx.fillStyle = "rgb(255, 255, 255)";
     ctx.textAlign = "center"; // center alignment for x axis
     ctx.textBaseline = "middle"; // middle alignment for y axis
-    ctx.fillText("Loppu!", canvas.width / 2, canvas.height / 2);
+    if(kuoli==false){
+      ctx.fillText("Loppu!", canvas.width / 2, canvas.height / 2);
+    }
+    ctx.fillText("Kuolit!", canvas.width / 2, canvas.height / 2);
     // Draw the restart button
     ctx.fillText("Uudelleen", restartButton.x, restartButton.y);
     // Draw a rectangle around the button
@@ -192,18 +247,18 @@ var render = function () {
   // After the game is finished
   if(finished==true){
     // If there is no highscore or the current score is higher than the highscore
-    if(enemiesCaught > highscore){
+    if(coinsCollected > highscore){
       // Update the highscore
-      localStorage.setItem('highscore', enemiesCaught);
+      localStorage.setItem('highscore', coinsCollected);
     }
 }
 };
 
-var count = 1; // how many seconds the game lasts for - default 30
+var count = 30; // how many seconds the game lasts for - default 30
 var finished = false;
 var counter =function(){
   count=count-1; // countown by 1 every second
-  // when count reaches 0 clear the timer, hide enemy and player and finish the game
+  // when count reaches 0 clear the timer, hide coin and player and finish the game
   	if (count <= 0)
   	{
   		// stop the timer
@@ -211,8 +266,8 @@ var counter =function(){
      	// set game to finished
      	finished = true;
      	count=0;
-     	// hider enemy and player
-     	enemyReady=false;
+     	// hide coin and player
+     	coinReady=false;
      	playerReady=false;
   	}
 
