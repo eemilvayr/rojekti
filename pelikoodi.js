@@ -233,6 +233,7 @@ var render = function () {
     ctx.fillStyle = "rgb(255, 255, 255)";
     ctx.textAlign = "center"; // center alignment for x axis
     ctx.textBaseline = "middle"; // middle alignment for y axis
+    // Display different game over messages based on if the player died or the timer finished
     if(kuoli==false){
       ctx.fillText("Loppu!", canvas.width / 2, canvas.height / 2);
     }
