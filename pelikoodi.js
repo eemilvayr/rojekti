@@ -42,6 +42,8 @@ function startGame() {
   };
   enemyImage.src = "vihu.png";
 
+  // Keep track of the last damage time
+  var lastDamage = Date.now();
   // Create the game objects
   var player = {
     speed: 200, // movement speed of player in pixels per second
@@ -56,11 +58,12 @@ function startGame() {
     y: Math.random() * canvas.height
   };
   // Handle keyboard controls
-var keysDown = {};
+  var keysDown = {};
 
 // Check for keys pressed where key represents the key pressed
 addEventListener("keydown", function (event) {
   keysDown[event.key] = true;
+  event.preventDefault(); // Prevent the default action
 }, false);
 
 addEventListener("keyup", function (event) {
@@ -74,25 +77,13 @@ var reset = function () {
   player.y = canvas.height / 2;
 
   // Place the coin somewhere on the canvas randomly
-  coin.x = coinImage.width + (Math.random() * (canvas.width - (coinImage.width*2)));
-  coin.y = coinImage.height + (Math.random() * (canvas.height - (coinImage.height*2)));
-
-  // Load the player image
-  playerImage.onload = function () {
-    playerReady = true;
-  };
-  playerImage.src = "ukko.png";
-
-  // Load the coin image
-  coinImage.onload = function () {
-    coinReady = true;
-  };
-  coinImage.src = "kolikko.png";
+  coin.x = Math.random() * (canvas.width - coinImage.width);
+  coin.y = Math.random() * (canvas.height - coinImage.height);
 };
 
 // Update game objects - change player position based on key pressed
 var update = function (modifier) {
-  if (!finished) { // Only update if the game is not finished
+  if (!finished && !kuoli) { // Only update if the game is not finished
     if ("ArrowUp" in keysDown || "w" in keysDown) { // Player is holding up key
       player.y -= player.speed * modifier;
     }
@@ -114,7 +105,6 @@ var update = function (modifier) {
       enemy.x += (dx / distance) * enemy.speed * modifier;
       enemy.y += (dy / distance) * enemy.speed * modifier;
     }
-    
     // Check if the player and enemy are touching
     if (
       player.x <= (enemy.x + 32)
@@ -122,20 +112,23 @@ var update = function (modifier) {
       && player.y <= (enemy.y + 32)
       && enemy.y <= (player.y + 32)
     ) {
-      player.health -= 1;
+      if (Date.now() - lastDamage >= 1000) {
+        player.health -= 1;
+        lastDamage = Date.now();
+      }
     }
-  
+    
     // Check if the player's health is 0 or less
     if (player.health <= 0) {
       // End the game
       finished = true;
-    
-      // Hide the player and coin
+      kuoli = true;
+      
+      // Hide the player, coin, enemy, set count to 0
       playerReady = false;
       coinReady = false;
+      enemyReady = false;
       count = 0;
-      kuoli = true;
-
     }
   }
 
@@ -179,10 +172,14 @@ canvas.addEventListener('click', function(event) {
     coinsCollected = 0;
 
     // Reset the timer
-    count = 30;
+    count = 2;
 
     // Reset the game over flag
     finished = false;
+
+    // Reset the health and dead status of the player
+    kuoli = false;
+    player.health = 10;
   }
 });
 
@@ -198,7 +195,7 @@ var render = function () {
     ctx.drawImage(bgImage, 0, 0);
   }
 
-  if (!finished) { // Only draw the player and coins if the game is not finished
+  if (!finished && !kuoli) { // Only draw the player and coins if the game is not finished and player is not dead
     if (playerReady) {
       ctx.drawImage(playerImage, player.x, player.y);
     }
@@ -233,11 +230,13 @@ var render = function () {
     ctx.fillStyle = "rgb(255, 255, 255)";
     ctx.textAlign = "center"; // center alignment for x axis
     ctx.textBaseline = "middle"; // middle alignment for y axis
-    // Display different game over messages based on if the player died or the timer finished
-    if(kuoli==false){
+    if(kuoli){
+      // Code to run if the player is dead
+      ctx.fillText("Kuolit!", canvas.width / 2, canvas.height / 2);
+    } else {
+      // Code to run if the player is not dead
       ctx.fillText("Loppu!", canvas.width / 2, canvas.height / 2);
     }
-    ctx.fillText("Kuolit!", canvas.width / 2, canvas.height / 2);
     // Draw the restart button
     ctx.fillText("Uudelleen", restartButton.x, restartButton.y);
     // Draw a rectangle around the button
@@ -245,8 +244,8 @@ var render = function () {
     ctx.strokeRect(restartButton.x - 57, restartButton.y - 12, restartButton.width + 15, restartButton.height + 5);
   }
 
-  // After the game is finished
-  if(finished==true){
+  // After the game is finished or player has died
+  if(finished==true || kuoli==true){
     // If there is no highscore or the current score is higher than the highscore
     if(coinsCollected > highscore){
       // Update the highscore
@@ -255,8 +254,9 @@ var render = function () {
 }
 };
 
-var count = 30; // how many seconds the game lasts for - default 30
+var count = 2; // how many seconds the game lasts for - default 30
 var finished = false;
+var kuoli = false;
 var counter =function(){
   count=count-1; // countown by 1 every second
   // when count reaches 0 clear the timer, hide coin and player and finish the game
@@ -270,8 +270,8 @@ var counter =function(){
      	// hide coin and player
      	coinReady=false;
      	playerReady=false;
+      enemyReady=false;
   	}
-
 }
 
 // timer interval is every second (1000ms)
@@ -304,7 +304,6 @@ var startButton = document.getElementById('start-button');
 startButton.addEventListener('click', function() {
   // Hide the instruction page
   instructionPage.style.display = 'none';
-
   // pelit soimaa
-  startGame();
+  startGame(); 
 });
