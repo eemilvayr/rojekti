@@ -1,4 +1,74 @@
+// Create the game objects
+var playerImage, player, enemy, coin, coinsCollected, restartButton;
+
+// Keep track of the last damage time
+var lastDamage = Date.now();
+
+// Create variables for the images
+var bgReady, bgImage, playerReady, coinReady, coinImage, enemyReady, enemyImage;
+
+// Create the keysDown variable
+var keysDown;
+
+// Create the highscore variable
+var highscore;
+
+// Create the canvas and context variables
+var canvas, ctx;
+
+// These need to be set before can start the game
+var count = 15; // how many seconds the game lasts for - default 30
+var finished = false; // set game to not finished
+var dead = false; // set player to not dead
+
+// Add a variable to track whether the game is running
+var gameRunning = false;
+
+// Add a variable to track whether the player is taking damage
+var playerTakingDamage = false;
+
+// Get all the character elements
+var characters = document.getElementsByClassName('character');
+
+// Add a click event listener to each character
+for (var i = 0; i < characters.length; i++) {
+  characters[i].addEventListener('click', function(event) {
+    // Prevent the dropdown item's link from being followed
+    event.preventDefault();
+
+    // Store the chosen character
+    var chosenCharacter = event.target.dataset.character;
+    localStorage.setItem('chosenCharacter', chosenCharacter);
+
+    // Show the chosen character
+    var selectedCharacter = document.getElementById('selectedCharacter');
+    selectedCharacter.src = chosenCharacter;
+    selectedCharacter.style.display = 'block';
+
+    // Enable the start button
+    document.getElementById('startButton').disabled = false;
+  });
+}
+
+// Load images
 function loadImages() {
+  // Load the player image
+  playerReady = false;
+  playerImage = new Image();
+  playerImage.onload = function () {
+    // show the player image
+    playerReady = true;
+  };
+  // Load the chosen character image, or a default image if no character was chosen
+  var chosenCharacter = localStorage.getItem('chosenCharacter');
+  if (chosenCharacter) {
+    playerImage.src = chosenCharacter;
+  } else {
+    playerImage.src = "ukko.png";
+  } 
+
+  // Change original color back after taking damage
+  playerOriginalColor = playerImage;
   // Load the background image
   bgReady = false;
   bgImage = new Image();
@@ -8,15 +78,10 @@ function loadImages() {
   };
   bgImage.src = "tausta.png";
 
-  // Load the player image
-  playerReady = false;
-  playerImage = new Image();
-  playerImage.onload = function () {
-    // show the player image
-    playerReady = true;
-  };
-  playerImage.src = "ukko.png";
-
+  // Load the player damage image
+  playerDamageImage = new Image();
+  playerDamageImage.src = "ukko_red.png";
+  
   // Load the coin image
   coinReady = false;
   coinImage = new Image();
@@ -35,8 +100,6 @@ function loadImages() {
   };
   enemyImage.src = "vihu.png";
 }
-
-var bgReady, bgImage, playerReady, playerImage, coinReady, coinImage, enemyReady, enemyImage;
 
 function createGameObjects() {
   // Create the player object
@@ -62,10 +125,8 @@ function createGameObjects() {
   };
 }
 
-var player, enemy, coin, coinsCollected, restartButton;
-
 function setupEventListeners() {
-  // Handle keyboard controls
+  // Keep track of keys pressed
   keysDown = {};
 
   // Check for keys pressed where key represents the key pressed
@@ -96,11 +157,6 @@ function setupEventListeners() {
   });
 }
 
-var keysDown;
-
-// Keep track of the last damage time
-var lastDamage = Date.now();
-
 function updateGameObjects(modifier) {
   if (!finished) { // Only update if the game is not finished
     if ("ArrowUp" in keysDown || "w" in keysDown) { // Player is holding up key
@@ -121,22 +177,36 @@ function updateGameObjects(modifier) {
     var distance = Math.sqrt(dx * dx + dy * dy);
     
     if (distance > 0) {
-      enemy.x += (dx / distance) * enemy.speed * modifier;
-      enemy.y += (dy / distance) * enemy.speed * modifier;
-    }
-    // Check if the player and enemy are touching
-    if (
-      player.x <= (enemy.x + 32)
-      && enemy.x <= (player.x + 32)
-      && player.y <= (enemy.y + 32)
-      && enemy.y <= (player.y + 32)
-    ) {
-      // Reduce player's health if they are touching the enemy 1 point/1000ms
-      if (Date.now() - lastDamage >= 1000) {
-        player.health -= 1;
-        lastDamage = Date.now();
+      var newEnemyX = enemy.x + (dx / distance) * enemy.speed * modifier;
+      var newEnemyY = enemy.y + (dy / distance) * enemy.speed * modifier;
+      // Add a condition to stop the enemy when it's about to collide with the player
+      if (!(newEnemyX <= (player.x + 32) && player.x <= (newEnemyX + 32) &&
+            newEnemyY <= (player.y + 32) && player.y <= (newEnemyY + 32))) {
+        enemy.x = newEnemyX;
+        enemy.y = newEnemyY;
       }
     }
+  // Check if the player and enemy are touching
+  if (
+    player.x < (enemy.x + enemyImage.width + 2)
+    && enemy.x < (player.x + playerImage.width + 2)
+    && player.y < (enemy.y + enemyImage.height + 2)
+    && enemy.y < (player.y + playerImage.height + 2)
+  ) {
+    // Reduce player's health if they are touching the enemy 1 point/1000ms
+    if (Date.now() - lastDamage >= 1000) {
+      player.health -= 1;
+      lastDamage = Date.now();
+
+      // Set playerTakingDamage to true and start a timer
+      playerTakingDamage = true;
+      playerImage = playerDamageImage; // Change the player's image to the damage image
+      setTimeout(function() {
+        playerTakingDamage = false;
+        playerImage = playerOriginalColor; // Change the player's image back to its original image
+      }, 300); // The player will flash red for 300 milliseconds
+    }
+  }
     
     // Check if the player's health is 0 or less
     if (player.health <= 0) {
@@ -206,10 +276,10 @@ function restartGame() {
 
   // Use reset function to place the player, enemy and coin in new positions
   reset();
-}
 
-// Define highscore variable
-var highscore;
+  // Set gameRunning back to false
+  gameRunning = false;
+}
 
 // Save highscore
 function saveHighscore(score) {
@@ -290,9 +360,6 @@ function renderGame() {
   }
 }
 
-var count = 15; // how many seconds the game lasts for - default 30
-var finished = false; // set game to not finished
-var dead = false; // set player to not dead
 var counter = function(){
   count=count-1; // countown by 1 every second
   // when count reaches 0 clear the timer, hide coin and player and finish the game
@@ -336,8 +403,6 @@ function initializeGame() {
     highscore = parseInt(response);
   });
 }
-
-var canvas, ctx;
  
 // Run continuously during the game
 function gameLoop() {
@@ -349,6 +414,18 @@ function gameLoop() {
   requestAnimationFrame(gameLoop);
 }
 
-// Start the game
-initializeGame();
-gameLoop();
+// Get the button
+var startButton = document.getElementById("startButton");
+
+// Add an event listener to the start button
+startButton.addEventListener("click", function() {
+  // Only start the game if it's not already running
+  if (!gameRunning) {
+    // Set gameRunning to true
+    gameRunning = true;
+
+    // Initialize the game and start the game loop
+    initializeGame();
+    gameLoop();
+  }
+});
