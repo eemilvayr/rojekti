@@ -17,9 +17,12 @@ var highscore;
 var canvas, ctx;
 
 // These need to be set before can start the game
-var count = 15; // how many seconds the game lasts for - default 30
+var count = 30; // how many seconds the game lasts for - default 30
 var finished = false; // set game to not finished
 var dead = false; // set player to not dead
+
+// Create the isNewHighscore variable
+var isNewHighscore = false;
 
 // Add a variable to track whether the game is running
 var gameRunning = false;
@@ -47,6 +50,9 @@ for (var i = 0; i < characters.length; i++) {
 
     // Enable the start button
     document.getElementById('startButton').disabled = false;
+
+    // Reload the images
+    loadImages();
   });
 }
 
@@ -241,6 +247,7 @@ function updateGameObjects(modifier) {
     && coin.y <= (player.y + playerImage.height)
   ) {
     ++coinsCollected;
+    count += 1; // add 1 second to the timer
     reset();
   }
 }
@@ -264,7 +271,7 @@ function reset() {
 function restartGame() {
   // Reset the player's health, timer, score, gameover status and death status
   player.health = 10;
-  count = 15;
+  count = 30;
   coinsCollected = 0;
   finished = false;
   dead = false;
@@ -273,6 +280,10 @@ function restartGame() {
   playerReady = true;
   coinReady = true;
   enemyReady = true;
+
+  // Reset isNewHighscore
+  isNewHighscore = false;
+
 
   // Use reset function to place the player, enemy and coin in new positions
   reset();
@@ -292,11 +303,18 @@ function saveHighscore(score) {
   });
 }
 
+// Get the highscore from the database when the game starts
+getHighscore().then(response => {
+  highscore = parseInt(response);
+});
+
 // Get highscore
 function getHighscore() {
+  console.log('Fetching highscore...');
   return fetch('../get_highscore.php')
     .then(response => response.text())
     .then(highscore => {
+      console.log('Received highscore:', highscore);
       if (isNaN(highscore)) {
         return 0;
       } else {
@@ -356,6 +374,12 @@ function renderGame() {
     if (coinsCollected > highscore) {
       highscore = coinsCollected;
       saveHighscore(highscore);
+      isNewHighscore = true; // Set isNewHighscore to true
+    }
+
+    // If it's a new highscore, display the "Uusi ennätys!" message
+    if (isNewHighscore) {
+      ctx.fillText("Uusi ennätys!", canvas.width / 2, canvas.height / 2 + 60);
     }
   }
 }
@@ -377,10 +401,6 @@ var counter = function(){
   	}
 };
 
-
-// timer interval is every second (1000ms)
-setInterval(counter, 1000);
-
 // Run once at the start of the game
 function initializeGame() {
   // Create the canvas and context
@@ -397,7 +417,6 @@ function initializeGame() {
   reset();
   // Setup the event listeners
   setupEventListeners();
-
   // Get the highscore from the database when the game starts
   getHighscore().then(response => {
     highscore = parseInt(response);
@@ -423,9 +442,12 @@ startButton.addEventListener("click", function() {
   if (!gameRunning) {
     // Set gameRunning to true
     gameRunning = true;
-
-    // Initialize the game and start the game loop
-    initializeGame();
     gameLoop();
+
+    // Start the timer
+    setInterval(counter, 1000);
   }
 });
+
+// Initialize the game
+initializeGame();
